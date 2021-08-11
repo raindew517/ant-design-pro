@@ -29,16 +29,6 @@ const LoginMessage: React.FC<{
   />
 );
 
-/** 此方法会跳转到 redirect 参数所在的位置 */
-const goto = () => {
-  if (!history) return;
-  setTimeout(() => {
-    const { query } = history.location;
-    const { redirect } = query as { redirect: string };
-    history.push(redirect || '/');
-  }, 10);
-};
-
 const Login: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [userLoginState, setUserLoginState] = useState<API.LoginResult>({});
@@ -50,10 +40,10 @@ const Login: React.FC = () => {
   const fetchUserInfo = async () => {
     const userInfo = await initialState?.fetchUserInfo?.();
     if (userInfo) {
-      setInitialState({
-        ...initialState,
+      await setInitialState((s) => ({
+        ...s,
         currentUser: userInfo,
-      });
+      }));
     }
   };
 
@@ -63,24 +53,28 @@ const Login: React.FC = () => {
       // 登录
       const msg = await login({ ...values, type });
       if (msg.status === 'ok') {
-        const defaultloginSuccessMessage = intl.formatMessage({
+        const defaultLoginSuccessMessage = intl.formatMessage({
           id: 'pages.login.success',
           defaultMessage: '登录成功！',
         });
-        message.success(defaultloginSuccessMessage);
+        message.success(defaultLoginSuccessMessage);
         await fetchUserInfo();
-        goto();
+        /** 此方法会跳转到 redirect 参数所在的位置 */
+        if (!history) return;
+        const { query } = history.location;
+        const { redirect } = query as { redirect: string };
+        history.push(redirect || '/');
         return;
       }
       // 如果失败去设置用户错误信息
       setUserLoginState(msg);
     } catch (error) {
-      const defaultloginFailureMessage = intl.formatMessage({
+      const defaultLoginFailureMessage = intl.formatMessage({
         id: 'pages.login.failure',
         defaultMessage: '登录失败，请重试！',
       });
 
-      message.error(defaultloginFailureMessage);
+      message.error(defaultLoginFailureMessage);
     }
     setSubmitting(false);
   };
@@ -126,7 +120,7 @@ const Login: React.FC = () => {
               },
             }}
             onFinish={async (values) => {
-              handleSubmit(values as API.LoginParams);
+              await handleSubmit(values as API.LoginParams);
             }}
           >
             <Tabs activeKey={type} onChange={setType}>
@@ -150,7 +144,7 @@ const Login: React.FC = () => {
               <LoginMessage
                 content={intl.formatMessage({
                   id: 'pages.login.accountLogin.errorMessage',
-                  defaultMessage: '账户或密码错误（admin/ant.design)',
+                  defaultMessage: '账户或密码错误(admin/ant.design)',
                 })}
               />
             )}
